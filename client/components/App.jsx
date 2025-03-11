@@ -198,7 +198,7 @@ export default function App() {
         return flaggedCategories; // Return flagged categories (e.g., ["violence", "self-harm"])
     }
   }
-  return result
+  return result;
 }
 
   async function handleFlaggedInput(moderationResult, text) {
