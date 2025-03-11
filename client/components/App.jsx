@@ -4,6 +4,7 @@ import EventLog from "./EventLog";
 import SessionControls from "./SessionControls";
 import ToolPanel from "./ToolPanel";
 import axios from "axios";
+import ChildInfoForm from "./ChildInfoForm";
 
 
 export default function App() {
@@ -12,8 +13,19 @@ export default function App() {
   const [dataChannel, setDataChannel] = useState(null);
   const [transcript, setTranscript] = useState(""); // Add state for transcript
   const [flagged, setFlag] = useState(false); // Add state for flagged content
+  const [childName, setChildName] = useState(""); // Add state for child's name
+  const [childAge, setChildAge] = useState(""); // Add state for child's age
+  const [parentPhoneNumber, setParentPhoneNumber] = useState(""); // Add state for parent's phone number
+  const [showForm, setShowForm] = useState(true); // Add state to show/hide form
   const peerConnection = useRef(null);
   const audioElement = useRef(null);
+
+  const handleFormSubmit = ({ name, age, phoneNumber }) => {
+    setChildName(name);
+    setChildAge(age);
+    setParentPhoneNumber(phoneNumber);
+    setShowForm(false); // Hide the form after submission
+  };
 
   async function startSession() {
     // Get an ephemeral key from the Fastify server
@@ -128,8 +140,8 @@ export default function App() {
       },
       body: JSON.stringify({
         input: transcript,
-    }),
-  });
+      }),
+    });
 
   const result = await response.json();
   if (data.results && data.results.length > 0) {
@@ -229,6 +241,12 @@ export default function App() {
           />
         </section>
       </main>
+      {/* Display the form */}
+      {showForm && (
+        <div className="flex justify-center items-center absolute top-0 left-0 right-0 bottom-0 border border-gray-50 p-4">
+          <ChildInfoForm onSubmit={handleFormSubmit} />
+        </div>
+      )}
     </>
   );
 }
