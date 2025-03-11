@@ -28,6 +28,11 @@ app.get("/token", async (req, res) => {
         body: JSON.stringify({
           model: "gpt-4o-realtime-preview-2024-12-17",
           voice: "verse",
+          input_audio_transcription: {
+            "model": "whisper-1",
+            "language": "en",
+          },
+            instructions: "You are talking to a 5 year old."
         }),
       },
     );
