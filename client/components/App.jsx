@@ -5,6 +5,7 @@ import SessionControls from "./SessionControls";
 import ToolPanel from "./ToolPanel";
 import axios from "axios";
 
+
 export default function App() {
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [events, setEvents] = useState([]);
@@ -122,11 +123,7 @@ export default function App() {
     const response = await fetch("https://api.openai.com/v1/moderations", {
       method: "POST",
       headers: {
-        // My API Key cause I wasn't able to use dotenv
-        // ADD YOUR API KEY HERE!!!!
-        // If someone can figure out how to pull it from the dotenv file, that would be great
-        // But it past 1am for me at the time of me writing this and I need sleep ASAP no Rocky.
-        Authorization: `Bearer $ADD API KEY`,
+        Authorization: `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -135,8 +132,21 @@ export default function App() {
   });
 
   const result = await response.json();
+  if (data.results && data.results.length > 0) {
+    const flaggedCategories = Object.keys(data.results[0].categories).filter(
+        (category) => data.results[0].categories[category]
+    );
+
+    console.log("Flagged Categories:", flaggedCategories);
+    
+    if (flaggedCategories.length > 0) {
+        return flaggedCategories; // Return flagged categories (e.g., ["violence", "self-harm"])
+    }
+  }
   return result
 }
+
+// console.log("API Key:", import.meta.env.VITE_OPENAI_API_KEY ? "Loaded" : "Not Loaded");
 
 
   // Attach event listeners to the data channel when a new one is created
@@ -189,7 +199,7 @@ export default function App() {
       <nav className="absolute top-0 left-0 right-0 h-16 flex items-center">
         <div className="flex items-center gap-4 w-full m-4 pb-2 border-0 border-b border-solid border-gray-200">
           <img style={{ width: "24px", marginLeft: "10px" }} src={logo} />
-          <h1>realtime console</h1>
+          <h1>Teddy Talk Console</h1>
         </div>
       </nav>
       <main className="absolute top-16 left-0 right-0 bottom-0">
@@ -214,15 +224,9 @@ export default function App() {
             sendTextMessage={sendTextMessage}
             events={events}
             isSessionActive={isSessionActive}
+            transcript={transcript}
+            flagged={flagged}
           />
-          {/* Display the transcript */} 
-          <div>
-            <h2>Transcript</h2>
-            <p>{transcript}</p>
-          {/* Display the flagged content */}
-            <h2>Flagged</h2>
-            <p>{flagged.toString()}</p> {/* Convert boolean to string */}
-          </div>
         </section>
       </main>
     </>

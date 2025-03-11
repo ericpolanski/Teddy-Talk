@@ -51,7 +51,7 @@ function AlertNotification({ functionCallOutput, onClose }) {
 }
 
 
-export default function ToolPanel({ isSessionActive, sendClientEvent, events }) {
+export default function ToolPanel({ isSessionActive, sendClientEvent, events, transcript, flagged }) {
   const [functionAdded, setFunctionAdded] = useState(false);
   const [functionCallOutput, setFunctionCallOutput] = useState({
     arguments: JSON.stringify({
@@ -121,24 +121,19 @@ export default function ToolPanel({ isSessionActive, sendClientEvent, events }) 
         ) : (
           <p>When inappropriate topics are brought up, notifications will appear below.</p>
         )}
-
-        {/* Test Notification Button */}
-        {functionCallOutput === null && (
-        <button
-          onClick={() =>
-            setFunctionCallOutput({
-              arguments: JSON.stringify({
-                alertType: "Violence",
-                message: "Kevin brought up violence. See the transcription to the left.",
-              }),
-            })
-          }
-          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
-        >
-          Show Test Notification
-        </button>
-        )}
+        
       </div>
+
+      {/* Transcript Section at the Bottom */}
+      <div className="mt-auto pt-4 border-t border-gray-300">
+          <h2 className="text-md font-semibold">Transcript</h2>
+          <p className="text-sm">{transcript || "No transcript available."}</p>
+                    
+          <h2 className="text-md font-semibold mt-2">Flagged Topic?</h2>
+          <p className="text-sm text-red-500">{flagged.toString()}</p>
+      </div>
+
+
     </section>
   );
 
