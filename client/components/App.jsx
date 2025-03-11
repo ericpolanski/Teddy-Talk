@@ -20,6 +20,49 @@ export default function App() {
   const peerConnection = useRef(null);
   const audioElement = useRef(null);
 
+  const AI_RULES = `
+  How to Converse With A Child
+
+  1. **Use Simple Words:** 
+   - Make sure the child can understand. Educate in an approachable, relatable way.
+
+  2. **Avoid The Word “Don't”:** 
+   - Encourage positive behavior rather than scolding.
+   - Example: Instead of “Don't run,” say “Let's walk safely!”
+
+  3. **Encourage Autonomy & Curiosity:** 
+   - Offer options and solutions rather than making decisions for them.
+   - Ask follow-up questions to help them reflect and learn.
+
+  4. **Encourage Cooperation:** 
+   - Promote teamwork with friends, family, and trusted adults.
+   - Encourage asking parents or teachers for guidance.
+
+  5. **Foster Emotional Intelligence:** 
+   - Help children recognize, name, and manage emotions.
+   - Example: Instead of “You're fine,” say “I see you're feeling sad. What can we do to feel better?”
+
+  6. **Make Learning Fun & Engaging:** 
+   - Use storytelling, playful language, and excitement.
+   - Example: Instead of “The sun gives us light,” say “The sun is like a big glowing flashlight in the sky!”
+
+  7. **Reinforce Good Habits:** 
+   - Model healthy routines in conversation.
+   - Example: Instead of “You forgot to brush your teeth,” say “Brushing makes your smile super shiny! Show me how you do it!”
+
+  8. **Be Adaptive & Personal:** 
+   - Adjust responses based on the child's interests and previous conversations.
+   - If they love animals, include animal-related examples.
+
+  9. **Promote a Growth Mindset:** 
+   - Encourage perseverance and learning from mistakes.
+   - Example: Instead of “You got it wrong,” say “Great try! Let's figure it out together.”
+
+  10. **Ensure a Safe & Supportive Environment:** 
+   - Keep conversations safe, age-appropriate, and reassuring.
+   - Avoid discussing complex or distressing topics.
+  `;
+
   const handleFormSubmit = ({ name, age, phoneNumber }) => {
     setChildName(name);
     setChildAge(age);
@@ -158,6 +201,56 @@ export default function App() {
   return result
 }
 
+  async function handleFlaggedInput(moderationResult, text) {
+    console.log("Handling flagged input:", text);
+    let aiPrompt = `Follow these AI Communication Principles:\n${AI_RULES}\n\n`;
+
+    if (moderationResult.results[0].categories.violence) {
+      aiPrompt += `The user mentioned something violent: "${text}". Respond with a peaceful message.`;
+    } else if (moderationResult.results[0].categories.hate) {
+      aiPrompt += `The user used hateful language: "${text}". Respond with a kind and inclusive message.`;
+    } else if (moderationResult.results[0].categories.sexual) {
+      aiPrompt += `The user brought up something inappropriate: "${text}". Redirect to a child-friendly topic.`;
+    } else if (moderationResult.results[0].categories.self_harm) {
+      aiPrompt += `The user mentioned self-harm: "${text}". Provide encouragement and suggest talking to a trusted adult.`;
+      await logConcerningMessage(text, "severe");
+    } else if (moderationResult.results[0].categories.harassment) {
+      aiPrompt += `The user is harassing: "${text}". Gently remind them to be respectful.`;
+    }
+
+    console.log("Generating a safe response...");
+    const safeResponse = await processTextWithRules(aiPrompt);
+    setTranscript(safeResponse);
+  }
+
+  async function processTextWithRules(text) {
+    const prompt = `Follow these AI Communication Principles:\n${AI_RULES}\n\nUser said: "${text}". Generate a child-friendly response.`;
+    return await processText(prompt);
+  }
+
+  async function processText(text) {
+    const response = await fetch("/process", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    const data = await response.json();
+    return data.response;
+  }
+
+  // Improved logging function with error handling
+  async function logConcerningMessage(userInput, severity) {
+    try {
+      await fetch("/log", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: userInput, severity }),
+      });
+    } catch (error) {
+      console.error("Logging error:", error);
+    }
+  }
+
 // console.log("API Key:", import.meta.env.VITE_OPENAI_API_KEY ? "Loaded" : "Not Loaded");
 
 
@@ -180,6 +273,7 @@ export default function App() {
             console.log(moderationResult.results);
             setFlag(moderationResult.results[0].flagged);
             if (moderationResult.results[0].flagged) {
+              await handleFlaggedInput(moderationResult, transcriptText);
               // Store true flagged categories in array
               const flaggedCategories = Object.keys(moderationResult.results[0].categories).filter(category => moderationResult.results[0].categories[category]);
               // So the message is sent in the console as well
