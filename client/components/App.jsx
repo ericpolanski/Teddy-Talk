@@ -4,6 +4,7 @@ import EventLog from "./EventLog";
 import SessionControls from "./SessionControls";
 import ToolPanel from "./ToolPanel";
 import axios from "axios";
+import ChildInfoForm from "./ChildInfoForm";
 
 export default function App() {
   const [isSessionActive, setIsSessionActive] = useState(false);
@@ -11,8 +12,19 @@ export default function App() {
   const [dataChannel, setDataChannel] = useState(null);
   const [transcript, setTranscript] = useState(""); // Add state for transcript
   const [flagged, setFlag] = useState(false); // Add state for flagged content
+  const [childName, setChildName] = useState(""); // Add state for child's name
+  const [childAge, setChildAge] = useState(""); // Add state for child's age
+  const [parentPhoneNumber, setParentPhoneNumber] = useState(""); // Add state for parent's phone number
+  const [showForm, setShowForm] = useState(true); // Add state to show/hide form
   const peerConnection = useRef(null);
   const audioElement = useRef(null);
+
+  const handleFormSubmit = ({ name, age, phoneNumber }) => {
+    setChildName(name);
+    setChildAge(age);
+    setParentPhoneNumber(phoneNumber);
+    setShowForm(false); // Hide the form after submission
+  };
 
   async function startSession() {
     // Get an ephemeral key from the Fastify server
@@ -126,17 +138,17 @@ export default function App() {
         // ADD YOUR API KEY HERE!!!!
         // If someone can figure out how to pull it from the dotenv file, that would be great
         // But it past 1am for me at the time of me writing this and I need sleep ASAP no Rocky.
-        Authorization: `Bearer $ADD API KEY`,
+        Authorization: `Bearer $ADD API KEY HERE`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         input: transcript,
-    }),
-  });
+      }),
+    });
 
-  const result = await response.json();
-  return result
-}
+    const result = await response.json();
+    return result;
+  }
 
 
   // Attach event listeners to the data channel when a new one is created
@@ -189,7 +201,7 @@ export default function App() {
       <nav className="absolute top-0 left-0 right-0 h-16 flex items-center">
         <div className="flex items-center gap-4 w-full m-4 pb-2 border-0 border-b border-solid border-gray-200">
           <img style={{ width: "24px" }} src={logo} />
-          <h1>realtime console</h1>
+          <h1>Teddy Talk Console</h1>
         </div>
       </nav>
       <main className="absolute top-16 left-0 right-0 bottom-0">
@@ -215,16 +227,22 @@ export default function App() {
             events={events}
             isSessionActive={isSessionActive}
           />
-          {/* Display the transcript */} 
+          {/* Display the transcript */}
           <div>
             <h2>Transcript</h2>
             <p>{transcript}</p>
-          {/* Display the flagged content */}
+            {/* Display the flagged content */}
             <h2>Flagged</h2>
             <p>{flagged.toString()}</p> {/* Convert boolean to string */}
           </div>
         </section>
       </main>
+      {/* Display the form */}
+      {showForm && (
+        <div className="flex justify-center items-center absolute top-0 left-0 right-0 bottom-0 border border-gray-50 p-4">
+          <ChildInfoForm onSubmit={handleFormSubmit} />
+        </div>
+      )}
     </>
   );
 }
