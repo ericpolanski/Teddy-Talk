@@ -187,17 +187,7 @@ export default function App() {
     });
 
   const result = await response.json();
-  if (data.results && data.results.length > 0) {
-    const flaggedCategories = Object.keys(data.results[0].categories).filter(
-        (category) => data.results[0].categories[category]
-    );
 
-    console.log("Flagged Categories:", flaggedCategories);
-    
-    if (flaggedCategories.length > 0) {
-        return flaggedCategories; // Return flagged categories (e.g., ["violence", "self-harm"])
-    }
-  }
   return result;
 }
 
