@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 
 const functionDescription = `
-Call this function when a user asks for a color palette.
+Call this function when a flag is set by the Moderation API for concerning topics.
 `;
 
 const sessionUpdate = {
@@ -10,26 +10,22 @@ const sessionUpdate = {
     tools: [
       {
         type: "function",
-        name: "display_color_palette",
+        name: "display_alert",
         description: functionDescription,
         parameters: {
           type: "object",
           strict: true,
           properties: {
-            theme: {
+            alertType: {
               type: "string",
-              description: "Description of the theme for the color scheme.",
+              description: "Type of concerning topic detected (e.g., violence, self-harm).",
             },
-            colors: {
-              type: "array",
-              description: "Array of five hex color codes based on the theme.",
-              items: {
-                type: "string",
-                description: "Hex color code",
-              },
+            message: {
+              type: "string",
+              description: "Message to display about the detected issue.",
             },
           },
-          required: ["theme", "colors"],
+          required: ["alertType", "message"],
         },
       },
     ],
@@ -37,39 +33,51 @@ const sessionUpdate = {
   },
 };
 
-function FunctionCallOutput({ functionCallOutput }) {
-  const { theme, colors } = JSON.parse(functionCallOutput.arguments);
-
-  const colorBoxes = colors.map((color) => (
-    <div
-      key={color}
-      className="w-full h-16 rounded-md flex items-center justify-center border border-gray-200"
-      style={{ backgroundColor: color }}
-    >
-      <p className="text-sm font-bold text-black bg-slate-100 rounded-md p-2 border border-black">
-        {color}
-      </p>
-    </div>
-  ));
+function AlertNotification({ functionCallOutput, onClose }) {
+  const { alertType, message } = JSON.parse(functionCallOutput.arguments);
 
   return (
-    <div className="flex flex-col gap-2">
-      <p>Theme: {theme}</p>
-      {colorBoxes}
-      <pre className="text-xs bg-gray-100 rounded-md p-2 overflow-x-auto">
-        {JSON.stringify(functionCallOutput, null, 2)}
-      </pre>
+    <div className="p-4 bg-red-200 border border-red-500 rounded-md relative">
+      <button
+        onClick={onClose}
+        className="absolute top-2 right-2 px-2 py-1 bg-red-500 text-white rounded-md"
+      >
+        ✕
+      </button>
+      <p className="text-lg font-bold">Alert: {alertType}</p>
+      <p>{message}</p>
     </div>
   );
 }
 
-export default function ToolPanel({
-  isSessionActive,
-  sendClientEvent,
-  events,
-}) {
+
+export default function ToolPanel({ isSessionActive, sendClientEvent, events }) {
   const [functionAdded, setFunctionAdded] = useState(false);
-  const [functionCallOutput, setFunctionCallOutput] = useState(null);
+  const [functionCallOutput, setFunctionCallOutput] = useState({
+    arguments: JSON.stringify({
+      alertType: "Self-harm",
+      message: "A message related to self-harm has been detected. Please review the conversation carefully.",
+    }),
+  });
+
+  const handleClose = () => {
+    setFunctionCallOutput(null); // Clears the notification
+  };
+
+  <button
+  onClick={() =>
+    setFunctionCallOutput({
+      arguments: JSON.stringify({
+        alertType: "Violence",
+        message: "A message related to violence has been detected. Please review the conversation carefully.",
+      }),
+    })
+  }
+  className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
+  >
+  Show Test Notification
+  </button>
+
 
   useEffect(() => {
     if (!events || events.length === 0) return;
@@ -86,22 +94,8 @@ export default function ToolPanel({
       mostRecentEvent.response.output
     ) {
       mostRecentEvent.response.output.forEach((output) => {
-        if (
-          output.type === "function_call" &&
-          output.name === "display_color_palette"
-        ) {
+        if (output.type === "function_call" && output.name === "display_alert") {
           setFunctionCallOutput(output);
-          setTimeout(() => {
-            sendClientEvent({
-              type: "response.create",
-              response: {
-                instructions: `
-                ask for feedback about the color palette - don't repeat 
-                the colors, just ask if they like the colors.
-              `,
-              },
-            });
-          }, 500);
         }
       });
     }
@@ -117,17 +111,35 @@ export default function ToolPanel({
   return (
     <section className="h-full w-full flex flex-col gap-4">
       <div className="h-full bg-gray-50 rounded-md p-4">
-        <h2 className="text-lg font-bold">Color Palette Tool</h2>
+        <h2 className="text-lg font-bold">Welcome to Teddy Talk!</h2>
         {isSessionActive ? (
           functionCallOutput ? (
-            <FunctionCallOutput functionCallOutput={functionCallOutput} />
+            <AlertNotification functionCallOutput={functionCallOutput} onClose = {handleClose} />
           ) : (
-            <p>Ask for advice on a color palette...</p>
+            <p>No concerning topics detected.</p>
           )
         ) : (
-          <p>Start the session to use this tool...</p>
+          <p>When inappropriate topics are brought up, notifications will appear below.</p>
+        )}
+
+        {/* Test Notification Button */}
+        {functionCallOutput === null && (
+        <button
+          onClick={() =>
+            setFunctionCallOutput({
+              arguments: JSON.stringify({
+                alertType: "Violence",
+                message: "Kevin brought up violence. See the transcription to the left.",
+              }),
+            })
+          }
+          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
+        >
+          Show Test Notification
+        </button>
         )}
       </div>
     </section>
   );
+
 }
