@@ -3,11 +3,14 @@ import logo from "/assets/TTLogo.png";
 import EventLog from "./EventLog";
 import SessionControls from "./SessionControls";
 import ToolPanel from "./ToolPanel";
+import axios from "axios";
 
 export default function App() {
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [events, setEvents] = useState([]);
   const [dataChannel, setDataChannel] = useState(null);
+  const [transcript, setTranscript] = useState(""); // Add state for transcript
+  const [flagged, setFlag] = useState(false); // Add state for flagged content
   const peerConnection = useRef(null);
   const audioElement = useRef(null);
 
@@ -40,7 +43,7 @@ export default function App() {
     await pc.setLocalDescription(offer);
 
     const baseUrl = "https://api.openai.com/v1/realtime";
-    const model = "gpt-4o-realtime-preview-2024-12-17";
+    const model = "gpt-4o-mini-realtime-preview-2024-12-17";
     const sdpResponse = await fetch(`${baseUrl}?model=${model}`, {
       method: "POST",
       body: offer.sdp,
@@ -114,12 +117,63 @@ export default function App() {
     sendClientEvent({ type: "response.create" });
   }
 
+  // Function to call the moderation API
+  async function moderateContent(transcript) {
+    const response = await fetch("https://api.openai.com/v1/moderations", {
+      method: "POST",
+      headers: {
+        // My API Key cause I wasn't able to use dotenv
+        // ADD YOUR API KEY HERE!!!!
+        // If someone can figure out how to pull it from the dotenv file, that would be great
+        // But it past 1am for me at the time of me writing this and I need sleep ASAP no Rocky.
+        Authorization: `Bearer $ADD API KEY`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        input: transcript,
+    }),
+  });
+
+  const result = await response.json();
+  return result
+}
+
+
   // Attach event listeners to the data channel when a new one is created
   useEffect(() => {
     if (dataChannel) {
       // Append new server events to the list
-      dataChannel.addEventListener("message", (e) => {
-        setEvents((prev) => [JSON.parse(e.data), ...prev]);
+      dataChannel.addEventListener("message", async (e) => {
+        const event = JSON.parse(e.data);
+        setEvents((prev) => [event, ...prev]);
+
+        // Check for the transcript event type
+        if (event.type === "conversation.item.input_audio_transcription.completed") {
+          const transcript = event.transcript;
+          setTranscript(transcript); // Set transcript
+
+          // Call the moderation API  
+          try {
+            const moderationResult = await moderateContent(transcript);
+            console.log(moderationResult.results);
+            setFlag(moderationResult.results[0].flagged);
+            if (moderationResult.results[0].flagged) {
+              // Store true flagged categories in array
+              const flaggedCategories = Object.keys(moderationResult.results[0].categories).filter(category => moderationResult.results[0].categories[category]);
+              // So the message is sent in the console as well
+              console.log(`Teddy Talk has detected the following flagged content: ${flaggedCategories.join(', ')}\nThis was the message said: ${transcript}\nReply STOP to stop receiving these messages.`);
+              // This does not work yet
+              axios.post('/send-sms', {
+                phone: '12244302716',
+                message: `Teddy Talk has detected the following flagged content: ${flaggedCategories.join(', ')}\nThis was the message said: ${transcript}`,
+              }).then(response => {
+                console.log(response.data);
+              })
+            }
+          } catch (error) {
+            console.error("Moderation error:", error);
+          }
+        }
       });
 
       // Set session active when the data channel is opened
@@ -161,6 +215,14 @@ export default function App() {
             events={events}
             isSessionActive={isSessionActive}
           />
+          {/* Display the transcript */} 
+          <div>
+            <h2>Transcript</h2>
+            <p>{transcript}</p>
+          {/* Display the flagged content */}
+            <h2>Flagged</h2>
+            <p>{flagged.toString()}</p> {/* Convert boolean to string */}
+          </div>
         </section>
       </main>
     </>
