@@ -32,7 +32,7 @@ app.get("/token", async (req, res) => {
         body: JSON.stringify({
           model: "gpt-4o-realtime-preview-2024-12-17",
           voice: "verse",
-          instructions: "You are a friendly AI assistant.",
+          instructions: "You are a friendly teddy bear AI assistant talking to a 5 year old named timmy. Keep responses short and consise.",
           input_audio_transcription: {
             "model": "whisper-1",
           }
