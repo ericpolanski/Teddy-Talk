@@ -18,6 +18,7 @@ export default function App() {
   const [showForm, setShowForm] = useState(true);
   const peerConnection = useRef(null);
   const audioElement = useRef(null);
+  let phoneNumber = ""; 
 
   const AI_RULES = `
   How to Converse With A Child
@@ -62,11 +63,32 @@ export default function App() {
    - Avoid discussing complex or distressing topics.
   `;
 
-  const handleFormSubmit = ({ name, age, phoneNumber }) => {
-    setChildName(name);
-    setChildAge(age);
-    setParentPhoneNumber(phoneNumber);
+  //const handleFormSubmit = ({ name, age, phoneNumber }) => {
+  //  setChildName(name);
+  //  setChildAge(age);
+  //  setParentPhoneNumber(phoneNumber);
+  //  setShowForm(false); // Hide the form after submission
+  //};
+
+  const [responseMessage, setResponseMessage] = useState("");
+
+  const handleFormSubmit = async (formData) => {
+    setParentPhoneNumber(formData.phoneNumber); 
+    console.log(`Parent phone number: ${formData.phoneNumber}`)
     setShowForm(false); // Hide the form after submission
+    try {
+      const response = await fetch("/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+      setResponseMessage(data.message);
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      setResponseMessage("Failed to submit form.");
+    }
   };
 
   async function startSession() {
@@ -182,7 +204,7 @@ export default function App() {
 
     console.log("Generating a safe response...");
     const safeResponse = await processTextWithRules(aiPrompt);
-    setTranscript(safeResponse);
+    // setTranscript(safeResponse);
   }
 
   async function processTextWithRules(text) {
@@ -230,15 +252,16 @@ export default function App() {
             console.log(moderationResult.results);
             setFlag(moderationResult.results[0].flagged);
             if (moderationResult.results[0].flagged) {
-              await handleFlaggedInput(moderationResult, transcriptText);
+              // await handleFlaggedInput(moderationResult, newTranscript);
               // Store true flagged categories in array
               const flaggedCategories = Object.keys(moderationResult.results[0].categories).filter(category => moderationResult.results[0].categories[category]);
               // So the message is sent in the console as well
-              console.log(`Teddy Talk has detected the following flagged content: ${flaggedCategories.join(', ')}\nThis was the message said: ${transcript}\nReply STOP to stop receiving these messages.`);
-              // This does not work yet
+              console.log(`Teddy Talk has detected the following flagged content: ${flaggedCategories.join(', ')}\nThis was the message said: ${newTranscript}\nReply STOP to stop receiving these messages.`);
+              // Send a text message to the parent
+              //console.log(parentPhoneNumber);
               axios.post('/send-sms', {
-                phone: '12244302716',
-                message: `Teddy Talk has detected the following flagged content: ${flaggedCategories.join(', ')}\nThis was the message said: ${transcript}`,
+                phone: parentPhoneNumber,
+                message: `Teddy Talk has detected the following flagged content: ${flaggedCategories.join(', ')}\nThis was the message said: ${newTranscript}`,
               }).then(response => {
                 console.log(response.data);
               })
@@ -268,7 +291,7 @@ export default function App() {
         <section className="absolute top-0 left-0 right-[380px] bottom-0 flex">
           <section className="absolute top-0 left-0 right-0 bottom-32 px-4 overflow-y-auto">
             <EventLog events={events} 
-                      transcripts={transcripts} 
+                      transcripts={transcripts}
                       flagged = {flagged} />
           </section>
           <section className="absolute h-32 left-0 right-0 bottom-0 p-4">
@@ -288,7 +311,7 @@ export default function App() {
             sendTextMessage={sendTextMessage}
             events={events}
             isSessionActive={isSessionActive}
-            transcript={transcripts}
+            transcript={transcripts[transcripts.length - 1]}
             flagged={flagged}
           />
         </section>
