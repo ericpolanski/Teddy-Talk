@@ -64,31 +64,18 @@ export default function ToolPanel({ isSessionActive, sendClientEvent, events, tr
     setFunctionCallOutput(null); // Clears the notification
   };
 
-  <button
-  onClick={() =>
-    setFunctionCallOutput({
-      arguments: JSON.stringify({
-        alertType: "Violence",
-        message: "A message related to violence has been detected. Please review the conversation carefully.",
-      }),
-    })
-  }
-  className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
-  >
-  Show Test Notification
-  </button>
 
 
   useEffect(() => {
     if (!events || events.length === 0) return;
 
-    const firstEvent = events[events.length - 1];
+    const firstEvent = events[0];
     if (!functionAdded && firstEvent.type === "session.created") {
       sendClientEvent(sessionUpdate);
       setFunctionAdded(true);
     }
 
-    const mostRecentEvent = events[0];
+    const mostRecentEvent = events[events.length - 1];
     if (
       mostRecentEvent.type === "response.done" &&
       mostRecentEvent.response.output
