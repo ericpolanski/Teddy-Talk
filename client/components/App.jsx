@@ -12,14 +12,13 @@ export default function App() {
   const [dataChannel, setDataChannel] = useState(null);
   const [transcripts, setTranscripts] = useState([]); // Store transcripts as an array
   const [flagged, setFlag] = useState(false);
-  const [childName, setChildName] = useState("");
-  const [childAge, setChildAge] = useState("");
   const [parentPhoneNumber, setParentPhoneNumber] = useState("");
   const [showForm, setShowForm] = useState(true);
   const peerConnection = useRef(null);
   const audioElement = useRef(null);
-  let phoneNumber = ""; 
+  const [AI_Response, setAIResponse] = useState([]); // Initialize AI_Response as an array
 
+  // Rules for how to converse with a child
   const AI_RULES = `
   How to Converse With A Child
 
@@ -62,13 +61,6 @@ export default function App() {
    - Keep conversations safe, age-appropriate, and reassuring.
    - Avoid discussing complex or distressing topics.
   `;
-
-  //const handleFormSubmit = ({ name, age, phoneNumber }) => {
-  //  setChildName(name);
-  //  setChildAge(age);
-  //  setParentPhoneNumber(phoneNumber);
-  //  setShowForm(false); // Hide the form after submission
-  //};
 
   const [responseMessage, setResponseMessage] = useState("");
 
@@ -172,7 +164,7 @@ export default function App() {
     const response = await fetch("https://api.openai.com/v1/moderations", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${import.meta.env.VITE_OPENAI_API_KEY}`,
+        Authorization: `Bearer $YOUR API KEY HERE`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -249,16 +241,15 @@ export default function App() {
 
           try {
             const moderationResult = await moderateContent(newTranscript);
-            console.log(moderationResult.results);
+            //console.log(moderationResult.results);
             setFlag(moderationResult.results[0].flagged);
             if (moderationResult.results[0].flagged) {
               // await handleFlaggedInput(moderationResult, newTranscript);
               // Store true flagged categories in array
               const flaggedCategories = Object.keys(moderationResult.results[0].categories).filter(category => moderationResult.results[0].categories[category]);
               // So the message is sent in the console as well
-              console.log(`Teddy Talk has detected the following flagged content: ${flaggedCategories.join(', ')}\nThis was the message said: ${newTranscript}\nReply STOP to stop receiving these messages.`);
+              // console.log(`Teddy Talk has detected the following flagged content: ${flaggedCategories.join(', ')}\nThis was the message said: ${newTranscript}\nReply STOP to stop receiving these messages.`);
               // Send a text message to the parent
-              //console.log(parentPhoneNumber);
               axios.post('/send-sms', {
                 phone: parentPhoneNumber,
                 message: `Teddy Talk has detected the following flagged content: ${flaggedCategories.join(', ')}\nThis was the message said: ${newTranscript}`,
@@ -269,6 +260,13 @@ export default function App() {
           } catch (error) {
             console.error("Moderation error:", error);
           }
+        }
+
+        if (event.type === "response.done") {
+          const newAIResponse = event.response.output[0].content[0].transcript;
+
+          // Add new AI response to the array
+          setAIResponse((prevAIResponses) => [...prevAIResponses, newAIResponse]);
         }
       });
 
@@ -290,9 +288,10 @@ export default function App() {
       <main className="absolute top-16 left-0 right-0 bottom-0">
         <section className="absolute top-0 left-0 right-[380px] bottom-0 flex">
           <section className="absolute top-0 left-0 right-0 bottom-32 px-4 overflow-y-auto">
-            <EventLog events={events} 
-                      transcripts={transcripts}
-                      flagged = {flagged} />
+            <EventLog 
+              transcripts={transcripts}
+              AIresponse={AI_Response}
+              flagged={flagged} />
           </section>
           <section className="absolute h-32 left-0 right-0 bottom-0 p-4">
             <SessionControls
