@@ -9,10 +9,12 @@ import ChildInfoForm from "./ChildInfoForm";
 export default function App() {
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [events, setEvents] = useState([]);
+  const [alerts, setAlerts] = useState([]);
   const [dataChannel, setDataChannel] = useState(null);
   const [transcripts, setTranscripts] = useState([]); // Store transcripts as an array
   const [flagged, setFlag] = useState(false);
   const [parentPhoneNumber, setParentPhoneNumber] = useState("");
+  const [childName, setChildName] = useState("");
   const [showForm, setShowForm] = useState(true);
   const peerConnection = useRef(null);
   const audioElement = useRef(null);
@@ -66,7 +68,8 @@ export default function App() {
 
   const handleFormSubmit = async (formData) => {
     setParentPhoneNumber(formData.phoneNumber); 
-    console.log(`Parent phone number: ${formData.phoneNumber}`)
+    setChildName(formData.name);
+    //console.log(`Child Name: ${formData.name}`)
     setShowForm(false); // Hide the form after submission
     try {
       const response = await fetch("/submit", {
@@ -164,7 +167,7 @@ export default function App() {
     const response = await fetch("https://api.openai.com/v1/moderations", {
       method: "POST",
       headers: {
-        Authorization: `Bearer $YOUR API KEY HERE`,
+        Authorization: `Bearer $YOUR_API_KEY_HERE`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -247,6 +250,7 @@ export default function App() {
               // await handleFlaggedInput(moderationResult, newTranscript);
               // Store true flagged categories in array
               const flaggedCategories = Object.keys(moderationResult.results[0].categories).filter(category => moderationResult.results[0].categories[category]);
+              setAlerts(flaggedCategories.join(', '));
               // So the message is sent in the console as well
               // console.log(`Teddy Talk has detected the following flagged content: ${flaggedCategories.join(', ')}\nThis was the message said: ${newTranscript}\nReply STOP to stop receiving these messages.`);
               // Send a text message to the parent
@@ -291,7 +295,8 @@ export default function App() {
             <EventLog 
               transcripts={transcripts}
               AIresponse={AI_Response}
-              flagged={flagged} />
+              flagged={flagged}
+              name = {childName} />
           </section>
           <section className="absolute h-32 left-0 right-0 bottom-0 p-4">
             <SessionControls
@@ -308,6 +313,7 @@ export default function App() {
           <ToolPanel
             sendClientEvent={sendClientEvent}
             sendTextMessage={sendTextMessage}
+            topic = {alerts}
             events={events}
             isSessionActive={isSessionActive}
             transcript={transcripts[transcripts.length - 1]}

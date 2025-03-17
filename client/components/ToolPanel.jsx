@@ -16,14 +16,6 @@ export default function ToolPanel({ isSessionActive, transcript, flagged, topic 
         )}
       </div>
 
-      {/* Transcript Section */}
-      <div className="mt-auto pt-4 border-t border-gray-300">
-        <h2 className="text-md font-semibold">Transcript</h2>
-        <p className="text-sm">{transcript || "No transcript available."}</p>
-
-        <h2 className="text-md font-semibold mt-2">Flagged Topic?</h2>
-        <p className="text-sm text-red-500">{flagged ? "Yes" : "No"}</p>
-      </div>
     </section>
   );
 }
