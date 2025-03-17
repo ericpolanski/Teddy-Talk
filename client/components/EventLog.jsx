@@ -1,4 +1,4 @@
-export default function EventLog({ transcripts, AIresponse }) {
+export default function EventLog({ transcripts, AIresponse, name }) {
   // Combine transcripts and AI responses into a single array of objects
   const combinedMessages = transcripts.map((message, index) => ({
     userMessage: message,
@@ -13,7 +13,7 @@ export default function EventLog({ transcripts, AIresponse }) {
         combinedMessages.map((messagePair, index) => (
           <div key={index} className="flex flex-col gap-2">
             <div className="flex flex-col gap-1 p-2 rounded-md bg-gray-50">
-              <div className="text-lg font-bold text-gray-600">User</div>
+              <div className="text-lg font-bold text-gray-600">{name}</div>
               <div className="flex justify-start">
                 <div className="flex flex-col gap-1 w-full">
                   <div className="text-sm text-gray-500">{messagePair.userMessage}</div>

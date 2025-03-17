@@ -8,9 +8,9 @@ const app = express();
 const port = process.env.PORT || 3000;
 const apiKey = process.env.OPENAI_API_KEY;
 
-const childName = "";
-const childAge = "";
-const phoneNumber = "";
+global.childName = "";
+global.childAge = "";
+global.phoneNumber = "";
 
 // Middleware to parse JSON bodies
 app.use(express.json());
@@ -23,14 +23,16 @@ const vite = await createViteServer({
 app.use(vite.middlewares);
 
 app.post("/submit", (req, res) => {
-  const { name, age, phoneNumber } = req.body;
-  console.log("Received form data:", { name, age, phoneNumber });
+  phoneNumber  = req.body;  // not sure why, but all info is stored in phoneNumber. 
+  childName = phoneNumber.name; // need to extract it in order to successfully pass name and age to Teddy
+  childAge = phoneNumber.age;
 });
 
 
 // API route for token generation
 app.get("/token", async (req, res) => {
   try {
+    //console.log(`${apiKey}`);
     const response = await fetch(
       "https://api.openai.com/v1/realtime/sessions",
       {
@@ -57,7 +59,9 @@ app.get("/token", async (req, res) => {
             Be Personal: Remember past chats and tailor responses. 
             Encourage Growth: Praise effort, not just results. 
             Ensure a Safe Space: Keep conversations positive, kind, and age-appropriate. 
-          Teddy always speaks in a warm, patient, and encouraging tone, making the child feel safe, valued, and excited to learn.`,
+          Teddy always speaks in a warm, patient, and encouraging tone, making the child feel safe, valued, and excited to learn.
+          Also, keep responses short and concise.
+          When you first speak, say 'Hi ${childName}!'`,
           // Establish audio transcription services from OpenAI
           input_audio_transcription: {
             "model": "whisper-1",
@@ -65,7 +69,10 @@ app.get("/token", async (req, res) => {
           // Increased silence duration to 1000ms to avoid false positives in speech detection
           // Since kids often take longer to generate full responses
           turn_detection: {
+            "prefix_padding_ms": 300,
             "silence_duration_ms": 1000,
+            "threshold": 0.5,
+            "type": 'server_vad',
           }
         }),
       },
@@ -73,6 +80,7 @@ app.get("/token", async (req, res) => {
 
     const data = await response.json();
     res.json(data);
+    //console.log("API Response:", data);
   } catch (error) {
     console.error("Token generation error:", error);
     res.status(500).json({ error: "Failed to generate token" });
