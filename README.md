@@ -9,6 +9,22 @@ Before you begin, you'll need an OpenAI API key - [create one in the dashboard h
 ```bash
 cp .env.example .env
 ```
+Additionally, you will need to add the your API key to [`./client/components/App.jsx`](./client/components/App.jsx) on line 114
+```jsx
+  async function moderateContent(transcript) {
+    const response = await fetch("https://api.openai.com/v1/moderations", {
+      method: "POST",
+      headers: {
+        // Change the API key to your OpenAI moderation API key
+        Authorization: `Bearer $YOUR API KEY`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        // Give the moderation API the text transcript to analyze (cannot handle audio files)
+        input: transcript,
+      }),
+    });
+```
 
 Running this application locally requires [Node.js](https://nodejs.org/) to be installed. Install dependencies for the application with:
 
