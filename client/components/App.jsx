@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import logo from "/assets/TTLogo.png";
 import EventLog from "./EventLog";
 import SessionControls from "./SessionControls";
+import ToolPanel from "./ToolPanel";
 import axios from "axios";
 import ChildInfoForm from "./ChildInfoForm";
 
@@ -14,6 +15,7 @@ export default function App() {
   const [transcripts, setTranscripts] = useState([]); // array: store all user input transcripts
   const [AI_Response, setAIResponse] = useState([]); // array: store all AI responses
   const [flagged, setFlag] = useState(false); // boolean: check if moderation API flags content
+  const [alerts, setAlerts] = useState(""); // string: store flagged categories
   const [parentPhoneNumber, setParentPhoneNumber] = useState(""); // string: store parent phone number from form
   const [childName, setChildName] = useState(""); // string: store child name from form
   const [childAge, setChildAge] = useState(""); // string: store child age from form
@@ -109,7 +111,7 @@ export default function App() {
       method: "POST",
       headers: {
         // Change the API key to your OpenAI moderation API key
-        Authorization: `Bearer $YOUR API KEY`,
+        Authorization: `Bearer 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`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -145,6 +147,7 @@ export default function App() {
             if (moderationResult.results[0].flagged) {
               // Store true flagged categories in array
               const flaggedCategories = Object.keys(moderationResult.results[0].categories).filter(category => moderationResult.results[0].categories[category]);
+              setAlerts(flaggedCategories.join(', '));
               // Debug Line: See sent message in the console
               // console.log(`Teddy Talk has detected the following flagged content: ${flaggedCategories.join(', ')}\nThis was the message said: ${newTranscript}\nReply STOP to stop receiving these messages.`);
               // Send a text message to the parent
@@ -188,14 +191,14 @@ export default function App() {
       </nav>
       { /* Main content of the application */ }
       <main className="absolute top-16 left-0 right-0 bottom-0">
-        {/* Show the conversation log between AI and child */}
+        <section className="absolute top-0 left-0 right-[380px] bottom-0 flex">
           <section className="absolute top-0 left-0 right-0 bottom-32 px-4 overflow-y-auto">
             <EventLog 
               transcripts={transcripts}
               AIresponse={AI_Response}
+              flagged={flagged}
               name = {childName} />
           </section>
-        {/* Show the session button */}
           <section className="absolute h-32 left-0 right-0 bottom-0 p-4">
             <SessionControls
               startSession={startSession}
@@ -204,6 +207,15 @@ export default function App() {
               isSessionActive={isSessionActive}
             />
           </section>
+        </section>
+        <section className="absolute top-0 w-[380px] right-0 bottom-0 p-4 pt-0 overflow-y-auto">
+          <ToolPanel
+            topic = {alerts}
+            events={events}
+            transcript={transcripts[transcripts.length - 1]}
+            flagged={flagged}
+          />
+        </section>
       </main>
       {/* Show the form to input child information */}
       {showForm && (
