@@ -2,16 +2,19 @@ import React, { useState } from 'react';
 import Button from './Button';
 
 export default function ChildInfoForm({ onSubmit }) {
+  // set local state variables for child info
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
 
+  // actually handles the form submission
   const handleSubmit = (e) => {
     e.preventDefault();
     onSubmit({ name, age, phoneNumber });
   };
 
   return (
+    // Displayed form for child info
     <form onSubmit={handleSubmit} className="bg-white p-6 rounded-md shadow-md">
       <div className="mb-4">
         <label className="block text-gray-700">

@@ -2,75 +2,34 @@ import { useEffect, useRef, useState } from "react";
 import logo from "/assets/TTLogo.png";
 import EventLog from "./EventLog";
 import SessionControls from "./SessionControls";
-import ToolPanel from "./ToolPanel";
 import axios from "axios";
 import ChildInfoForm from "./ChildInfoForm";
 
 export default function App() {
-  const [isSessionActive, setIsSessionActive] = useState(false);
-  const [events, setEvents] = useState([]);
-  const [alerts, setAlerts] = useState([]);
-  const [dataChannel, setDataChannel] = useState(null);
-  const [transcripts, setTranscripts] = useState([]); // Store transcripts as an array
-  const [flagged, setFlag] = useState(false);
-  const [parentPhoneNumber, setParentPhoneNumber] = useState("");
-  const [childName, setChildName] = useState("");
-  const [showForm, setShowForm] = useState(true);
+  // Stores all important information about the operations of the application
+  // local state variables
+  const [isSessionActive, setIsSessionActive] = useState(false); // boolean: check session activity
+  const [events, setEvents] = useState([]); // array: store all server and client events
+  const [dataChannel, setDataChannel] = useState(null); // object: store data channel (for audio)
+  const [transcripts, setTranscripts] = useState([]); // array: store all user input transcripts
+  const [AI_Response, setAIResponse] = useState([]); // array: store all AI responses
+  const [flagged, setFlag] = useState(false); // boolean: check if moderation API flags content
+  const [parentPhoneNumber, setParentPhoneNumber] = useState(""); // string: store parent phone number from form
+  const [childName, setChildName] = useState(""); // string: store child name from form
+  const [childAge, setChildAge] = useState(""); // string: store child age from form
+  const [showForm, setShowForm] = useState(true); // boolean: show form to input child info
+  const [responseMessage, setResponseMessage] = useState(""); // string: store response message from form submission
   const peerConnection = useRef(null);
   const audioElement = useRef(null);
-  const [AI_Response, setAIResponse] = useState([]); // Initialize AI_Response as an array
-
-  // Rules for how to converse with a child
-  const AI_RULES = `
-  How to Converse With A Child
-
-  1. **Use Simple Words:** 
-   - Make sure the child can understand. Educate in an approachable, relatable way.
-
-  2. **Avoid The Word “Don't”:** 
-   - Encourage positive behavior rather than scolding.
-   - Example: Instead of “Don't run,” say “Let's walk safely!”
-
-  3. **Encourage Autonomy & Curiosity:** 
-   - Offer options and solutions rather than making decisions for them.
-   - Ask follow-up questions to help them reflect and learn.
-
-  4. **Encourage Cooperation:** 
-   - Promote teamwork with friends, family, and trusted adults.
-   - Encourage asking parents or teachers for guidance.
-
-  5. **Foster Emotional Intelligence:** 
-   - Help children recognize, name, and manage emotions.
-   - Example: Instead of “You're fine,” say “I see you're feeling sad. What can we do to feel better?”
-
-  6. **Make Learning Fun & Engaging:** 
-   - Use storytelling, playful language, and excitement.
-   - Example: Instead of “The sun gives us light,” say “The sun is like a big glowing flashlight in the sky!”
-
-  7. **Reinforce Good Habits:** 
-   - Model healthy routines in conversation.
-   - Example: Instead of “You forgot to brush your teeth,” say “Brushing makes your smile super shiny! Show me how you do it!”
-
-  8. **Be Adaptive & Personal:** 
-   - Adjust responses based on the child's interests and previous conversations.
-   - If they love animals, include animal-related examples.
-
-  9. **Promote a Growth Mindset:** 
-   - Encourage perseverance and learning from mistakes.
-   - Example: Instead of “You got it wrong,” say “Great try! Let's figure it out together.”
-
-  10. **Ensure a Safe & Supportive Environment:** 
-   - Keep conversations safe, age-appropriate, and reassuring.
-   - Avoid discussing complex or distressing topics.
-  `;
-
-  const [responseMessage, setResponseMessage] = useState("");
 
   const handleFormSubmit = async (formData) => {
+    // From user input, set the parent phone number and child name
     setParentPhoneNumber(formData.phoneNumber); 
     setChildName(formData.name);
-    //console.log(`Child Name: ${formData.name}`)
-    setShowForm(false); // Hide the form after submission
+    setChildAge(formData.age);
+    // Hide the form after submission
+    setShowForm(false);
+    // Send to server
     try {
       const response = await fetch("/submit", {
         method: "POST",
@@ -87,10 +46,14 @@ export default function App() {
   };
 
   async function startSession() {
+    // Fetch the token from the server
     const tokenResponse = await fetch("/token");
     const data = await tokenResponse.json();
     const EPHEMERAL_KEY = data.client_secret.value;
+    // Create a new peer connection
+    // This application uses WebRTC to establish a peer-to-peer connection
     const pc = new RTCPeerConnection();
+    // Create an audio element to play the audio stream
     audioElement.current = document.createElement("audio");
     audioElement.current.autoplay = true;
     pc.ontrack = (e) => (audioElement.current.srcObject = e.streams[0]);
@@ -101,7 +64,9 @@ export default function App() {
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
     const baseUrl = "https://api.openai.com/v1/realtime";
+    // Using the GPT-4o mini model
     const model = "gpt-4o-mini-realtime-preview-2024-12-17";
+    // Send the offer to the OpenAI API
     const sdpResponse = await fetch(`${baseUrl}?model=${model}`, {
       method: "POST",
       body: offer.sdp,
@@ -119,6 +84,7 @@ export default function App() {
   }
 
   function stopSession() {
+    // Close the data channel and peer connection
     if (dataChannel) {
       dataChannel.close();
     }
@@ -127,137 +93,65 @@ export default function App() {
         sender.track.stop();
       }
     });
+    // Close the peer connection
     if (peerConnection.current) {
       peerConnection.current.close();
     }
+     // set all relevant states to null or false
     setIsSessionActive(false);
     setDataChannel(null);
     peerConnection.current = null;
   }
 
-  function sendClientEvent(message) {
-    if (dataChannel) {
-      message.event_id = message.event_id || crypto.randomUUID();
-      dataChannel.send(JSON.stringify(message));
-      setEvents((prev) => [message, ...prev]);
-    } else {
-      console.error("Failed to send message - no data channel available", message);
-    }
-  }
-
-  function sendTextMessage(message) {
-    const event = {
-      type: "conversation.item.create",
-      item: {
-        type: "message",
-        role: "user",
-        content: [
-          {
-            type: "input_text",
-            text: message,
-          },
-        ],
-      },
-    };
-    sendClientEvent(event);
-    sendClientEvent({ type: "response.create" });
-  }
-
+  // Function to call the OpenAI's moderation API
   async function moderateContent(transcript) {
     const response = await fetch("https://api.openai.com/v1/moderations", {
       method: "POST",
       headers: {
-        Authorization: `Bearer $YOUR_API_KEY_HERE`,
+        // Change the API key to your OpenAI moderation API key
+        Authorization: `Bearer $YOUR API KEY`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
+        // Give the moderation API the text transcript to analyze (cannot handle audio files)
         input: transcript,
       }),
     });
-
+// Parse the response from the moderation API
   const result = await response.json();
 
   return result;
 }
 
-  async function handleFlaggedInput(moderationResult, text) {
-    console.log("Handling flagged input:", text);
-    let aiPrompt = `Follow these AI Communication Principles:\n${AI_RULES}\n\n`;
-
-    if (moderationResult.results[0].categories.violence) {
-      aiPrompt += `The user mentioned something violent: "${text}". Respond with a peaceful message.`;
-    } else if (moderationResult.results[0].categories.hate) {
-      aiPrompt += `The user used hateful language: "${text}". Respond with a kind and inclusive message.`;
-    } else if (moderationResult.results[0].categories.sexual) {
-      aiPrompt += `The user brought up something inappropriate: "${text}". Redirect to a child-friendly topic.`;
-    } else if (moderationResult.results[0].categories.self_harm) {
-      aiPrompt += `The user mentioned self-harm: "${text}". Provide encouragement and suggest talking to a trusted adult.`;
-      await logConcerningMessage(text, "severe");
-    } else if (moderationResult.results[0].categories.harassment) {
-      aiPrompt += `The user is harassing: "${text}". Gently remind them to be respectful.`;
-    }
-
-    console.log("Generating a safe response...");
-    const safeResponse = await processTextWithRules(aiPrompt);
-    // setTranscript(safeResponse);
-  }
-
-  async function processTextWithRules(text) {
-    const prompt = `Follow these AI Communication Principles:\n${AI_RULES}\n\nUser said: "${text}". Generate a child-friendly response.`;
-    return await processText(prompt);
-  }
-
-  async function processText(text) {
-    const response = await fetch("/process", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
-    });
-    const data = await response.json();
-    return data.response;
-  }
-
-  // Improved logging function with error handling
-  async function logConcerningMessage(userInput, severity) {
-    try {
-      await fetch("/log", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userInput, severity }),
-      });
-    } catch (error) {
-      console.error("Logging error:", error);
-    }
-  }
-
   useEffect(() => {
     if (dataChannel) {
       dataChannel.addEventListener("message", async (e) => {
+        // Parse event server and client message
         const event = JSON.parse(e.data);
+        // set the event to the top of the array
         setEvents((prev) => [event, ...prev]);
 
+        // Check if the event is a completed audio transcription
+        // If so, send the transcript to the moderation API and check for flagged content
         if (event.type === "conversation.item.input_audio_transcription.completed") {
           const newTranscript = event.transcript;
 
           // Add new transcript to the array
           setTranscripts((prevTranscripts) => [...prevTranscripts, newTranscript]);
-
           try {
             const moderationResult = await moderateContent(newTranscript);
-            //console.log(moderationResult.results);
             setFlag(moderationResult.results[0].flagged);
+            // If content is flagged, pull out flagged categories and send a text message to the parent
             if (moderationResult.results[0].flagged) {
-              // await handleFlaggedInput(moderationResult, newTranscript);
               // Store true flagged categories in array
               const flaggedCategories = Object.keys(moderationResult.results[0].categories).filter(category => moderationResult.results[0].categories[category]);
-              setAlerts(flaggedCategories.join(', '));
-              // So the message is sent in the console as well
+              // Debug Line: See sent message in the console
               // console.log(`Teddy Talk has detected the following flagged content: ${flaggedCategories.join(', ')}\nThis was the message said: ${newTranscript}\nReply STOP to stop receiving these messages.`);
               // Send a text message to the parent
               axios.post('/send-sms', {
                 phone: parentPhoneNumber,
                 message: `Teddy Talk has detected the following flagged content: ${flaggedCategories.join(', ')}\nThis was the message said: ${newTranscript}`,
-              }).then(response => {
+              }).then (response => {
                 console.log(response.data);
               })
             }
@@ -266,6 +160,7 @@ export default function App() {
           }
         }
 
+        // Grab the AI response for console display
         if (event.type === "response.done") {
           const newAIResponse = event.response.output[0].content[0].transcript;
 
@@ -281,46 +176,36 @@ export default function App() {
     }
   }, [dataChannel]);
 
+  // HTML structure for the application
   return (
     <>
       <nav className="absolute top-0 left-0 right-0 h-16 flex items-center">
+        { /* Logo and title */ }
         <div className="flex items-center gap-4 w-full m-4 pb-2 border-0 border-b border-solid border-gray-200">
-          <img style={{ width: "24px", marginLeft: "10px" }} src={logo} />
+          <img style={{ width: "48px", marginLeft: "10px" }} src={logo} />
           <h1>Teddy Talk Console</h1>
         </div>
       </nav>
+      { /* Main content of the application */ }
       <main className="absolute top-16 left-0 right-0 bottom-0">
-        <section className="absolute top-0 left-0 right-[380px] bottom-0 flex">
+        {/* Show the conversation log between AI and child */}
           <section className="absolute top-0 left-0 right-0 bottom-32 px-4 overflow-y-auto">
             <EventLog 
               transcripts={transcripts}
               AIresponse={AI_Response}
-              flagged={flagged}
               name = {childName} />
           </section>
+        {/* Show the session button */}
           <section className="absolute h-32 left-0 right-0 bottom-0 p-4">
             <SessionControls
               startSession={startSession}
               stopSession={stopSession}
-              sendClientEvent={sendClientEvent}
-              sendTextMessage={sendTextMessage}
               events={events}
               isSessionActive={isSessionActive}
             />
           </section>
-        </section>
-        <section className="absolute top-0 w-[380px] right-0 bottom-0 p-4 pt-0 overflow-y-auto">
-          <ToolPanel
-            sendClientEvent={sendClientEvent}
-            sendTextMessage={sendTextMessage}
-            topic = {alerts}
-            events={events}
-            isSessionActive={isSessionActive}
-            transcript={transcripts[transcripts.length - 1]}
-            flagged={flagged}
-          />
-        </section>
       </main>
+      {/* Show the form to input child information */}
       {showForm && (
         <div className="flex justify-center items-center absolute top-0 left-0 right-0 bottom-0 border border-gray-50 p-4">
           <ChildInfoForm onSubmit={handleFormSubmit} />

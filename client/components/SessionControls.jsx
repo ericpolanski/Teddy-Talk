@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Play, Pause } from "react-feather";
 import Button from "./Button";
 
+
+// Handles deactivation of session
 function SessionStopped({ startSession }) {
   const [isActivating, setIsActivating] = useState(false);
 
@@ -12,8 +14,8 @@ function SessionStopped({ startSession }) {
     startSession();
   }
 
+  // Change the button accordingly
   return (
-    <div className="flex items-center justify-center w-full h-full">
       <Button
         onClick={handleStartSession}
         className={isActivating ? "bg-gray-600" : "bg-red-600"}
@@ -21,10 +23,9 @@ function SessionStopped({ startSession }) {
       >
         {isActivating ? "Starting Session..." : "Start Session"}
       </Button>
-    </div>
   );
 }
-
+// Handles activation of session
 function SessionActive({ stopSession }) {
   return (
     <div className="flex items-center justify-center w-full h-full gap-4">
@@ -40,6 +41,7 @@ export default function SessionControls({
   stopSession,
   isSessionActive,
 }) {
+  // Show the appropriate session control based on the session state
   return (
     <div className="flex gap-4 border-t-2 border-gray-200 h-full rounded-md">
       {isSessionActive ? (
