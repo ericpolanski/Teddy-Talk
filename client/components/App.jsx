@@ -111,7 +111,7 @@ export default function App() {
       method: "POST",
       headers: {
         // Change the API key to your OpenAI moderation API key
-        Authorization: `Bearer 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`,
+        Authorization: `Bearer $YOUR API KEY`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
