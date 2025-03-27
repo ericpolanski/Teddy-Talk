@@ -102,8 +102,11 @@ app.post("/send-sms", async (req, res) => {
     const response = await axios.post('https://textbelt.com/text', {
       phone: phone,
       message: message,
-      // Our API key for Textbelt
-      key: 'b7e6a4bade4b29f1c256834a193e0aa6f3b3157eBRfuUb0OG6SCEtvnPMF3eM8a0',
+      // ADD API KEY FOR TEXTBELT
+      // You can use 'TextBelt' for one free text per day
+      // You can add '_test' to the end of the API key 
+      // to test whether the message would send without acutally sending it
+      key: 'TextBelt_test',
     }); 
 
     res.json(response.data);
