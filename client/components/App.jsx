@@ -107,23 +107,13 @@ export default function App() {
 
   // Function to call the OpenAI's moderation API
   async function moderateContent(transcript) {
-    const response = await fetch("https://api.openai.com/v1/moderations", {
+    const res = await fetch("/moderate", {
       method: "POST",
-      headers: {
-        // Change the API key to your OpenAI moderation API key
-        Authorization: `Bearer $YOUR API KEY`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        // Give the moderation API the text transcript to analyze (cannot handle audio files)
-        input: transcript,
-      }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ transcript }),
     });
-// Parse the response from the moderation API
-  const result = await response.json();
-
-  return result;
-}
+    return res.json();
+  }
 
   useEffect(() => {
     if (dataChannel) {
@@ -165,6 +155,7 @@ export default function App() {
 
         // Grab the AI response for console display
         if (event.type === "response.done") {
+          console.log(event.response);
           const newAIResponse = event.response.output[0].content[0].transcript;
 
           // Add new AI response to the array

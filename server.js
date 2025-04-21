@@ -116,6 +116,24 @@ app.post("/send-sms", async (req, res) => {
   }
 });
 
+app.post("/moderate", async (req, res, next) => {
+  try {
+    const { transcript } = req.body;
+    const response = await axios.post(
+      "https://api.openai.com/v1/moderations",
+      { input: transcript },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    res.json(response.data);
+  } catch (err) {
+    next(err);
+  }
+});
 
 // Render the React client
 app.use("*", async (req, res, next) => {
