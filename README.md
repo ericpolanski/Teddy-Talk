@@ -1,5 +1,18 @@
-# OpenAI Realtime Console
+# Teddy Talk
+![Teddy Talk Thumbnail](TeddyTalkThumbnail.png)
 
+Teddy Talk is an innovative React application that leverages the [OpenAI Realtime API](https://platform.openai.com/docs/guides/realtime) and [WebRTC](https://platform.openai.com/docs/guides/realtime-webrtc) to enable real-time communication with children via a teddy bear. This app provides an engaging and interactive experience while ensuring a safe environment by moderating content and notifying caretakers of harmful information. 
+
+## Features
+
+- **Realtime Communication**: Uses OpenAI's Realtime API and WebRTC to enable seamless interaction through a teddy bear interface.
+- **Content Moderation**: Automatically analyzes text transcripts using the OpenAI Moderation API to detect harmful or inappropriate content.
+- **Text Notifications**: Sends alerts to caretakers when harmful information is communicated, ensuring safety and peace of mind.
+- **Conversation Viewer**: View messages sent between the child and the Teddy Bear through the console.
+
+## OpenAI Realtime Console
+
+The starter code comes from [OpenAI Realtime Console](https://github.com/openai/openai-realtime-console).
 This is an example application showing how to use the [OpenAI Realtime API](https://platform.openai.com/docs/guides/realtime) with [WebRTC](https://platform.openai.com/docs/guides/realtime-webrtc).
 
 ## Installation and usage
@@ -43,12 +56,6 @@ This should start the console application on [http://localhost:3000](http://loca
 This application is a minimal template that uses [express](https://expressjs.com/) to serve the React frontend contained in the [`/client`](./client) folder. The server is configured to use [vite](https://vitejs.dev/) to build the React frontend.
 
 This application shows how to send and receive Realtime API events over the WebRTC data channel and configure client-side function calling. You can also view the JSON payloads for client and server events using the logging panel in the UI.
-
-For a more comprehensive example, see the [OpenAI Realtime Agents](https://github.com/openai/openai-realtime-agents) demo built with Next.js, using an agentic architecture inspired by [OpenAI Swarm](https://github.com/openai/swarm).
-
-## Previous WebSockets version
-
-The previous version of this application that used WebSockets on the client (not recommended in browsers) [can be found here](https://github.com/openai/openai-realtime-console/tree/websockets).
 
 ## License
 
